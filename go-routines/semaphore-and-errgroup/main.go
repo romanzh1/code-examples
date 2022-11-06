@@ -76,6 +76,8 @@ func IncorrectVersion() error {
 	if err := g.Wait(); err != nil {
 		return err
 	}
+
+	return nil
 }
 
 func main() {
