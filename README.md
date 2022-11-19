@@ -1,3 +1,3 @@
-# code-exmaples
+# code-examples
 
-This is a repository of Go code examples on various topics
+code-examples is a repository of Go code examples for a variety of tasks
