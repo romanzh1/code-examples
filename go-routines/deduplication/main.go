@@ -36,12 +36,13 @@ func main() {
 			// 		mu.Unlock()
 			// 	}
 			// }()
+			mu.Lock()
+			defer mu.Unlock()
 
 			if _, ok := alreadyStored[doubles[i]]; !ok {
 				// mu.RUnlock()
-
-				mu.Lock()
-				defer mu.Unlock()
+				// mu.Lock()
+				// defer mu.Unlock()
 
 				alreadyStored[doubles[i]] = struct{}{}
 
@@ -50,20 +51,19 @@ func main() {
 		}()
 	}
 
-	wg2 := sync.WaitGroup{}
-	wg2.Add(1)
+	ch := make(chan struct{})
 	go func() {
 		for val := range uniqueIDs {
 			fmt.Println(val)
 		}
 
-		wg2.Done()
+		ch <- struct{}{}
 	}()
 
 	wg.Wait()
 	close(uniqueIDs)
 
-	wg2.Wait()
+	<-ch
 
 	fmt.Printf("len of ids: %d\n", len(uniqueIDs)) // 0, 1, 2, 3, 4 ...
 	fmt.Println(uniqueIDs)
