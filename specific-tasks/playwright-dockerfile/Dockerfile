@@ -1,8 +1,7 @@
-# One of these days I'll figure out how to get this working in Alpine...
 FROM golang:latest as build
-RUN mkdir -p ${GO}/src/private/albot
-COPY . ${GO}/src/private/albot
-WORKDIR ${GO}/src/private/albot
+RUN mkdir -p ${GO}/temp
+COPY . ${GO}/temp
+WORKDIR ${GO}/temp
 RUN go build -o /exe main.go
 RUN go build -o /deps deps.go
 
@@ -38,23 +37,24 @@ RUN apt-get install -y libwoff1 \
                        libxt6 \
                        ffmpeg
 
-# if group exists, append user to group +audio,video, otherwise add group
+# If group exists, append user to group +audio,video, otherwise add group
 RUN ( grep -q -E "^.*:.*:${GID}:.*$" /etc/group && \
       groupadd -r appuser --gid ${GID} && \
       useradd --uid ${UID} -r -g appuser -G audio,video appuser ) || \
     groupadd -r appuser && \
     useradd --uid ${UID} -r -g appuser -G audio,video appuser
 
-RUN mkdir -p /app/config && chown appuser:appuser /app
+RUN mkdir -p /app && chown appuser:appuser /app
 
-# HACK needed for Chrome/Playwright to launch. Error that occurs when this hack
-# isn't in place are... unhelpful. DO NOT REMOVE!
-RUN mkdir -p "/home/appuser/Downloads" && chown -R appuser:appuser "/home/appuser"
+# Playwright works from the user's folder ~/.cache/. But there are not enough rights inside the docker to run playwright. 
+# Rights in the docker container cannot be configured.
+# Therefore, you need to create a new user in the docker container and run playwright from the new user's folder.
+RUN mkdir -p "/home/appuser" && chown -R appuser:appuser "/home/appuser"
 USER appuser
 COPY --from=build /exe /app/exe
 COPY --from=build /deps /app/deps
-#HACK
-COPY ./config.yaml /app/config/config.yaml
+COPY . /app/
+
 WORKDIR /app
 RUN /app/deps
 ENTRYPOINT ["/app/exe"]
