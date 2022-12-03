@@ -39,9 +39,14 @@ const xOffset13 = "0.03494834106878"
 const yOffset13 = "0.109863281249998"
 const zOffset13 = "0.000015659770345"
 
-func main() {
+const res = "qwe"
 
-	fmt.Println(2)
+func main() {
+	arr := [4]string{"1", "2", "3", "4"}
+
+	qq := "qwe"
+	arr[3] = qq
+	fmt.Println(arr)
 
 	pw, err := playwright.Run()
 	if err != nil {
@@ -70,10 +75,19 @@ func main() {
 		log.Fatalf("could not create page: %v\n", err)
 	}
 
+	dir, err := os.Getwd()
+	if err != nil {
+		log.Fatal(err)
+	}
+	fmt.Println(dir)
+
+	// time.Sleep(time.Minute * 1)
 	page.SetDefaultTimeout(150 * 1000)
-	if _, err = page.Goto("file:///home/judas/Work/code-examples/specific-tasks/yandex-maps-parser/index.html"); err != nil {
+	if _, err = page.Goto("file:///app/index.html"); err != nil {
 		log.Fatalf("could not goto: %v\n", err)
 	}
+	fmt.Println("success")
+	time.Sleep(time.Minute * 10)
 
 	// 10 km
 	// offset x 0,0174780845214
