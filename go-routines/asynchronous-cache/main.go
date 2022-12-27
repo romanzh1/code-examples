@@ -3,79 +3,88 @@ package main
 import (
 	"errors"
 	"fmt"
+	"log"
+	"os"
 	"sync"
 	"time"
 )
 
 var ErrNotFound = errors.New("value not found")
-var mu = sync.Mutex{}
 
-type Cache map[string]string
+type Cache struct {
+	cache map[string]string
+	mu    *sync.Mutex
+}
 
 func NewCache() Cache {
-	cache := make(Cache)
+	cache := Cache{
+		cache: make(map[string]string),
+		mu:    &sync.Mutex{},
+	}
 
 	return cache
 }
 
-func (c Cache) Set(key, value string) error {
+func (c *Cache) Set(key, value string) error {
 	if c == nil {
 		return fmt.Errorf("cache isn't initialize")
 	}
 
-	mu.Lock()
-	c[key] = value
-	mu.Unlock()
+	c.mu.Lock()
+	c.cache[key] = value
+	c.mu.Unlock()
 
 	return nil
 }
 
-func (c Cache) Get(key string) (string, error) {
+func (c *Cache) Get(key string) (string, error) {
 	if c == nil {
 		return "", fmt.Errorf("cache isn't initialize")
 	}
 
-	mu.Lock()
-	val, ok := c[key]
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	val, ok := c.cache[key]
 	if !ok {
 		return "", ErrNotFound
 	}
-	mu.Unlock()
+	// mu.Unlock() unlock an unlocked mutex without defer TODO check it out
 
 	return val, nil
 }
 
-func (c Cache) Delete(key string) error {
+func (c *Cache) Delete(key string) error {
 	if c == nil {
 		return fmt.Errorf("cache isn't initialize")
 	}
 
-	mu.Lock()
-	_, ok := c[key]
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	_, ok := c.cache[key]
 	if !ok {
 		return ErrNotFound
 	}
 
-	delete(c, key)
-	mu.Unlock()
-
+	delete(c.cache, key)
 	return nil
 }
 
-func main() {
-	cache := NewCache()
+func CacheWork(cache *Cache) {
+	logger := log.New(os.Stderr, "logger: ", log.Ltime|log.Lshortfile)
 
 	go func() {
 		err := cache.Set("chi", "10")
 		if err != nil {
-			fmt.Println(err)
+			logger.Println(err)
 		}
 	}()
 
 	go func() {
 		err := cache.Set("gorm", "5")
 		if err != nil {
-			fmt.Println(err)
+			logger.Println(err)
 		}
 	}()
 	time.Sleep(time.Millisecond)
@@ -83,14 +92,14 @@ func main() {
 	go func() {
 		err := cache.Set("fasthttp", "3")
 		if err != nil {
-			fmt.Println(err)
+			logger.Println(err)
 		}
 	}()
 
 	go func() {
 		gorm, err := cache.Get("gorm")
 		if err != nil {
-			fmt.Println(err)
+			logger.Println(err)
 		}
 		fmt.Println(gorm)
 	}()
@@ -98,18 +107,24 @@ func main() {
 	go func() {
 		err := cache.Delete("fasthttp")
 		if err != nil {
-			fmt.Println(err)
+			logger.Println(err)
 		}
 	}()
 
 	go func() {
 		fh, err := cache.Get("fasthttp")
 		if err != nil {
-			fmt.Println(err)
+			logger.Println(err)
 		}
 		fmt.Println(fh)
 	}()
+}
 
-	fmt.Println(cache)
+func main() {
+	cache := NewCache()
+
+	CacheWork(&cache)
+
 	time.Sleep(time.Second)
+	fmt.Println(cache)
 }
